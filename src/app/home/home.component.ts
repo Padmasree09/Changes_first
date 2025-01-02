@@ -14,6 +14,7 @@ Chart.register(...registerables);
   styleUrls: ['./home.component.css'],
 })
 export class HomeComponent {
+  isLoading = false;
   salesData: any[] = []; // Will hold the sales data
   salesForm!: FormGroup; // Form to hold user inputs
   filteredSalesData: any[] = []; // Holds the filtered sales data
@@ -124,6 +125,7 @@ export class HomeComponent {
       auart: ['ZRS'],
     });
     this.renderChart(this.currentChart);
+    this.fetchSalesData();
   }
 
   showChart(period: string) {
@@ -179,10 +181,11 @@ export class HomeComponent {
 
   // Method to fetch sales data
   fetchSalesData(): void {
+    this.isLoading = true;
     const formData = this.salesForm.value;
     console.log('Sending form data:', formData); // Log the form data
-    this.salesDataService.getSalesReport(formData).subscribe(
-      (data) => {
+    this.salesDataService.getSalesReport(formData).subscribe({
+      next: (data) => {
         console.log('Received data:', data); // Log the received data
         this.salesData = data; // Assign the data to salesData
 
@@ -197,10 +200,13 @@ export class HomeComponent {
         this.createSaleTypeChart();
         this.createChannelChart();
       },
-      (error) => {
+      error: (error) => {
         console.error('Error fetching sales data:', error);
-      }
-    );
+      },
+      complete: () => {
+        this.isLoading = false;
+      },
+    });
   }
   filterSalesData(): void {
     // Retrieve dates from the form

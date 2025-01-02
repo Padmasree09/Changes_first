@@ -543,7 +543,11 @@
 
         <!-- Sales Chart -->
         <div #graphSection></div>
-        <div *ngIf="currentChart === 'sales'">
+        <div *ngIf="isLoading" class="loading-container">
+          <div class="spinner"></div>
+          <span> Loading charts...</span>
+        </div>
+        <div *ngIf="!isLoading && currentChart === 'sales'">
           <div class="row">
             <!-- <h2>Sales Chart</h2> -->
             <div class="col-md-6">
