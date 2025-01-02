@@ -21,7 +21,7 @@ body {
   border-bottom: 5px solid #f0f0f0;
   padding: 15px;
   margin-bottom: 2px;
-  background-color:darkcyan; /* Darker navbar background */
+  background-color:#063970; /* Darker navbar background */
 }
 
 .container-fluid {
@@ -238,7 +238,7 @@ canvas {
   width: 50%; /* Ensure the inputs take full width */
 }
 .form-field button {
-  background-color: blue; /* Green background */
+  background-color: cadetblue; /* Green background */
   margin-top: 25px;
   color: white; /* White text */
   padding: 6px;
@@ -250,11 +250,11 @@ canvas {
 }
 
 .form-field button:hover {
-  background-color: blue; /* Darker green on hover */
+  background-color: cadetblue; /* Darker green on hover */
   transform: scale(1.05); /* Slightly enlarge button on hover */
 }
 
 .form-field button:active {
-  background-color: blue; /* Even darker green when clicked */
+  background-color: cadetblue; /* Even darker green when clicked */
   transform: scale(0.98); /* Slightly shrink button on click */
 }

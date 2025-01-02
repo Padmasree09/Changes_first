@@ -20,9 +20,10 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { HomeComponent } from './home/home.component';
 import { MainComponent } from './main/main.component';
+import { SidebarComponent } from './sidebar/sidebar.component';
 
 @NgModule({
-  declarations: [AppComponent, LoginComponent, HomeComponent, MainComponent],
+  declarations: [AppComponent, LoginComponent, HomeComponent, MainComponent, SidebarComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,
