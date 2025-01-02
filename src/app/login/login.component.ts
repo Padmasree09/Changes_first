@@ -42,7 +42,7 @@ export class LoginComponent implements OnInit {
       // Placeholder for authentication logic
       if (username && password) {
         // Navigate to the dashboard page after successful login
-        this.router.navigate(['/home']);
+        this.router.navigate(['/main']);
       } else {
         // Show an error message
         alert('Please enter a valid username and password.');

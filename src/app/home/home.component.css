@@ -175,16 +175,25 @@ canvas {
 
 /* Responsive design for better display on mobile and tablet */
 @media (max-width: 768px) {
+  .col-md-6 {
+    flex: 0 0 100%; /* Full width on mobile */
+    margin-bottom: 15px; /* Space between stacked columns */
+  }
+  
   .row {
-    margin-bottom: 10px;
+    flex-direction: column; /* Stack columns vertically */
   }
 
+  .canvas-wrapper {
+    height: 250px; /* Slightly shorter charts on mobile */
+  }
   .card {
     padding: 20px;
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
+  
 }
 
 
