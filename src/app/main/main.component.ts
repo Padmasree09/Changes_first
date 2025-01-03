@@ -7,7 +7,15 @@ import { Component } from '@angular/core';
 })
 export class MainComponent {
   isSidebarOpen = false;
+  selectedChart: string = '';
+
+  
+
+  onChartSelected(chart: string) {
+    this.selectedChart = chart;
+  }
   toggleSidebar() {
     this.isSidebarOpen = !this.isSidebarOpen; // Toggle the sidebar state
+
   }
 }

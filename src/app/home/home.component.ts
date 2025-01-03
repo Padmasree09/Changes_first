@@ -2,6 +2,7 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
+  Input,
   ViewChild,
 } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
@@ -22,8 +23,9 @@ export class HomeComponent {
   currentChartIndex = 0; // Start with the first chart
   totalCharts = 9; // Total number of charts
   currentChart: string = 'sales'; // Default chart
-  fromDate: Date | null = null;
-  toDate: Date | null = null;
+  @Input() currentChart1: string = '';
+  fromDate!: Date;
+  toDate!: Date;
   //define chart variable
   salesChart!: Chart;
   cancellationsChart!: Chart;
@@ -52,8 +54,17 @@ export class HomeComponent {
   isFilterVisible = false;
   isSidebarOpen = true; // Sidebar starts open by default
 
+  onChartSelected(chartType: string) {
+    this.currentChart = chartType;
+    console.log('Selected Chart:', this.currentChart);
+  }
   toggleSidebar() {
-    this.isSidebarOpen = !this.isSidebarOpen; // Toggle the sidebar state
+    this.isSidebarOpen = !this.isSidebarOpen;
+    setTimeout(() => {
+      if (this.activeChartInstance) {
+        this.activeChartInstance.resize();
+      }
+    }, 300); // Adjust timeout as necessary.
   }
 
   toggleReport() {
@@ -71,8 +82,8 @@ export class HomeComponent {
     private cdr: ChangeDetectorRef
   ) {
     this.dateForm = this.fb.group({
-      fromDate: null,
-      toDate: null,
+      fromDate: '',
+      toDate: '',
     });
   }
   scrollToGraph() {
@@ -135,6 +146,7 @@ export class HomeComponent {
     this.renderChart(period);
   }
   renderChart(period: string) {
+    console.log('rendering chart for period', period);
     if (this.activeChartInstance) {
       this.activeChartInstance.destroy();
     }
@@ -143,10 +155,10 @@ export class HomeComponent {
       this.scrollToGraph();
       this.createSalesChart();
       // this.createMonthlySalesComparisonChart(this.fromDate, this.toDate);
-      this.createSalespieChart();
+      this.createTopNDaysPieChart();
     } else if (period === 'cancellations') {
       this.createCancellationsChart();
-      // this.createCancellationsComparisionChart();
+      this.createCancellationsComparisionChart(this.fromDate, this.toDate);
       this.scrollToGraph();
     } else if (period === 'saleType') {
       this.scrollToGraph();
@@ -170,7 +182,7 @@ export class HomeComponent {
       this.scrollToGraph();
     } else if (period === 'performance') {
       this.createPerformanceChart();
-      // this.createPerformanceComparisionChart(this.fromDate, this.toDate);
+      this.createPerformanceComparisionChart(3);
       this.scrollToGraph();
     } else if (period === 'channel') {
       this.createChannelChart();
@@ -260,7 +272,10 @@ export class HomeComponent {
   //   }
   //   return date;
   // }
-  parseDate(dateString: string): Date {
+  parseDate(dateString: string | Date): Date {
+    if (dateString instanceof Date) {
+      return dateString;
+    }
     // Check if the input format is DD.MM.YYYY
     const dateParts = dateString.split('.');
     if (dateParts.length === 3) {
@@ -373,17 +388,30 @@ export class HomeComponent {
     const labels = this.filteredSalesData.map((sale) => sale.AUDAT); // Assuming AUDAT is the sale date
     const salesValues = this.filteredSalesData.map((sale) => sale.MAIN); // Assuming 'MAIN' is the sales value
 
+    // Generate random colors or define a color palette for the bars
+    const backgroundColors = salesValues.map(
+      () =>
+        `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(
+          Math.random() * 255
+        )}, ${Math.floor(Math.random() * 255)}, 0.8)`
+    ); // Random colors
+    const borderColors = backgroundColors.map((color) =>
+      color.replace('0.8', '1')
+    ); // Matching border colors with full opacity
+
     const chartData = {
       labels,
       datasets: [
         {
           label: 'Sales Amount',
           data: salesValues,
-          backgroundColor: 'rgb(255, 165, 0)', // Orange color for bars
-          borderColor: 'rgba(255, 140, 0, 1)', // Darker orange for borders
+          backgroundColor: backgroundColors, // Array of colors for bars
+          borderColor: borderColors, // Array of colors for borders
           borderWidth: 2,
-          hoverBackgroundColor: 'rgba(255, 140, 0, 0.8)', // Slightly darker orange on hover
-          hoverBorderColor: 'rgba(255, 140, 0, 1)', // Same darker border for hover
+          hoverBackgroundColor: backgroundColors.map((color) =>
+            color.replace('0.8', '1')
+          ), // Darker hover effect
+          hoverBorderColor: borderColors, // Keep borders consistent on hover
         },
       ],
     };
@@ -441,7 +469,7 @@ export class HomeComponent {
             callbacks: {
               label: (context) => {
                 const value = context.raw;
-                return `Sales: ${value} .Rs`; // Format the tooltip label
+                return `Sales: ${value} Rs`; // Format the tooltip label
               },
             },
           },
@@ -456,7 +484,6 @@ export class HomeComponent {
 
     // Get the canvas element and initialize the chart
     const canvas = document.getElementById('salesChart') as HTMLCanvasElement;
-
     const ctx = canvas?.getContext('2d');
     if (ctx) {
       this.salesChart = new Chart(ctx, config);
@@ -464,30 +491,125 @@ export class HomeComponent {
       console.error('canvas context is null');
     }
   }
-  createSalespieChart(): void {
-    const labels = this.filteredSalesData.map((sale) => sale.AUDAT); // Assuming AUDAT is the sale date
-    const salesValues = this.filteredSalesData.map((sale) => sale.MAIN); // Assuming 'MAIN' is the sales value
 
-    // Generate a unique color for each label
+  // createSalespieChart(): void {
+  //   const labels = this.filteredSalesData.map((sale) => sale.AUDAT); // Assuming AUDAT is the sale date
+  //   const salesValues = this.filteredSalesData.map((sale) => sale.MAIN); // Assuming 'MAIN' is the sales value
+
+  //   // Generate a unique color for each label
+  //   const generateUniqueColors = (numColors: number) => {
+  //     const colors = [];
+  //     for (let i = 0; i < numColors; i++) {
+  //       const hue = Math.floor((360 / numColors) * i); // Spread hues evenly across the color wheel
+  //       colors.push(`hsla(${hue}, 70%, 60%, 0.6)`); // Adjust saturation and lightness as needed
+  //     }
+  //     return colors;
+  //   };
+
+  //   const uniqueBackgroundColors = generateUniqueColors(labels.length);
+  //   const uniqueHoverBackgroundColors = generateUniqueColors(labels.length).map(
+  //     (color) => color.replace('0.6', '0.8') // Slightly darken colors on hover
+  //   );
+
+  //   const chartData = {
+  //     labels,
+  //     datasets: [
+  //       {
+  //         label: 'Sales Amount',
+  //         data: salesValues,
+  //         backgroundColor: uniqueBackgroundColors,
+  //         borderColor: 'rgba(255, 255, 255, 1)', // White border for each slice
+  //         borderWidth: 1,
+  //         hoverBackgroundColor: uniqueHoverBackgroundColors,
+  //         hoverBorderColor: 'rgba(255, 255, 255, 1)',
+  //       },
+  //     ],
+  //   };
+
+  //   const config: ChartConfiguration = {
+  //     type: 'pie' as ChartType,
+  //     data: chartData,
+  //     options: {
+  //       responsive: true,
+  //       maintainAspectRatio: false,
+  //       plugins: {
+  //         legend: {
+  //           position: 'top',
+  //           labels: {
+  //             color: '#333',
+  //             font: {
+  //               family: 'Arial',
+  //               size: 14,
+  //             },
+  //           },
+  //         },
+  //         tooltip: {
+  //           backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  //           titleColor: '#fff',
+  //           bodyColor: '#fff',
+  //           borderWidth: 1,
+  //           borderColor: 'rgba(255, 255, 255, 0.5)',
+  //           callbacks: {
+  //             label: (context) => {
+  //               const value = context.raw;
+  //               return `Sales: ${value} .Rs`; // Format the tooltip label
+  //             },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   };
+
+  //   // Destroy the existing chart if already rendered
+  //   if (this.salespieChart) {
+  //     this.salespieChart.destroy();
+  //   }
+
+  //   // Get the canvas element and initialize the chart
+  //   const canvas = document.getElementById(
+  //     'salespieChart'
+  //   ) as HTMLCanvasElement;
+  //   const ctx = canvas?.getContext('2d');
+
+  //   if (ctx) {
+  //     this.salespieChart = new Chart(ctx, config);
+  //   } else {
+  //     console.error('canvas context is null');
+  //   }
+  // }
+  createTopNDaysPieChart(n: number = 5): void {
+    // Sort the sales data in descending order by sales value (MAIN)
+    const sortedSalesData = [...this.filteredSalesData].sort(
+      (a, b) => b.MAIN - a.MAIN
+    );
+
+    // Take the top N days with the highest sales
+    const topNSalesData = sortedSalesData.slice(0, n);
+
+    // Extract labels and sales values for the top N days
+    const labels = topNSalesData.map((sale) => sale.AUDAT); // Assuming AUDAT is the sale date
+    const salesValues = topNSalesData.map((sale) => sale.MAIN); // Assuming MAIN is the sales value
+
+    // Generate unique colors for the top N slices
     const generateUniqueColors = (numColors: number) => {
       const colors = [];
       for (let i = 0; i < numColors; i++) {
-        const hue = Math.floor((360 / numColors) * i); // Spread hues evenly across the color wheel
-        colors.push(`hsla(${hue}, 70%, 60%, 0.6)`); // Adjust saturation and lightness as needed
+        const hue = Math.floor((360 / numColors) * i); // Evenly distribute colors
+        colors.push(`hsla(${hue}, 70%, 60%, 0.8)`); // Adjust saturation and lightness
       }
       return colors;
     };
 
     const uniqueBackgroundColors = generateUniqueColors(labels.length);
     const uniqueHoverBackgroundColors = generateUniqueColors(labels.length).map(
-      (color) => color.replace('0.6', '0.8') // Slightly darken colors on hover
+      (color) => color.replace('0.8', '1.0') // Slightly darker on hover
     );
 
     const chartData = {
       labels,
       datasets: [
         {
-          label: 'Sales Amount',
+          label: `Top ${n} Sales Days`,
           data: salesValues,
           backgroundColor: uniqueBackgroundColors,
           borderColor: 'rgba(255, 255, 255, 1)', // White border for each slice
@@ -856,7 +978,7 @@ export class HomeComponent {
       this.cancellationsChart.destroy();
     }
   }
-  createCancellationsComparisionChart(fromDate: string, toDate: string): void {
+  createCancellationsComparisionChart(fromDate: Date, toDate: Date): void {
     //valid the input dates
     if (!fromDate || !toDate) {
       console.error('Invalid date range provided');
@@ -1242,39 +1364,56 @@ export class HomeComponent {
   //     console.error('Performance chart element not found');
   //   }
   // }
-  createPerformanceComparisionChart(): void {
+  createPerformanceComparisionChart(topN: number): void {
     // Aggregate performance data by sales executive
     const performanceData = this.filteredSalesData.reduce((acc, sale) => {
-      const execName = sale.SALE_EXE;
-      acc[execName] = (acc[execName] || 0) + Number(sale.MAIN);
+      const execName = sale.SALE_EXE; // Sales executive name
+      acc[execName] = (acc[execName] || 0) + Number(sale.MAIN); // Aggregate sales
       return acc;
     }, {});
 
-    const execLabels = Object.keys(performanceData); // Sales executive names
-    const execSalesValues = Object.values(performanceData) as number[]; // Their total sales amounts
+    // Convert the performance data to an array and sort by sales in descending order
+    const sortedData = Object.entries(performanceData)
+      .map(([execName, totalSales]) => ({
+        execName,
+        totalSales: Number(totalSales),
+      }))
+      .sort((a, b) => b.totalSales - a.totalSales);
 
+    // Slice the data to include only the top N sales executives
+    const topData = sortedData.slice(0, topN);
+
+    // Extract labels (sales executive names) and data (their total sales amounts)
+    const execLabels = topData.map((data) => data.execName);
+    const execSalesValues = topData.map((data) => data.totalSales);
+
+    // Generate unique colors for the chart
+    const generateUniqueColors = (numColors: number) => {
+      const colors = [];
+      for (let i = 0; i < numColors; i++) {
+        const hue = Math.floor((360 / numColors) * i); // Distribute colors evenly
+        colors.push(`hsla(${hue}, 70%, 60%, 0.8)`); // Adjust saturation and lightness
+      }
+      return colors;
+    };
+
+    const uniqueBackgroundColors = generateUniqueColors(execLabels.length);
+    const uniqueHoverBackgroundColors = uniqueBackgroundColors.map(
+      (color) => color.replace('0.8', '1.0') // Slightly darker on hover
+    );
+
+    // Chart configuration
     const config: ChartConfiguration = {
-      type: 'pie' as ChartType, // Pie chart for performance
+      type: 'pie' as ChartType,
       data: {
         labels: execLabels,
         datasets: [
           {
-            label: 'Sales Executive Performance',
+            label: `Top ${topN} Sales Executives`,
             data: execSalesValues,
-            backgroundColor: [
-              'rgba(153, 102, 255, 0.6)', // Purple
-              'rgba(75, 192, 192, 0.6)', // Green
-              'rgba(255, 159, 64, 0.6)', // Orange
-              'rgba(54, 162, 235, 0.6)', // Blue
-              'rgba(255, 99, 132, 0.6)', // Red
-            ],
-            borderColor: [
-              'rgba(153, 102, 255, 1)', // Purple
-              'rgba(75, 192, 192, 1)', // Green
-              'rgba(255, 159, 64, 1)', // Orange
-              'rgba(54, 162, 235, 1)', // Blue
-              'rgba(255, 99, 132, 1)', // Red
-            ],
+            backgroundColor: uniqueBackgroundColors,
+            hoverBackgroundColor: uniqueHoverBackgroundColors,
+            borderColor: 'rgba(255, 255, 255, 1)', // White border for clarity
             borderWidth: 1,
           },
         ],
@@ -1284,9 +1423,13 @@ export class HomeComponent {
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'top', // Position legend at the top
+            position: 'top',
             labels: {
-              color: '#333', // Darker text for legend
+              color: '#333', // Darker text for better contrast
+              font: {
+                family: 'Arial',
+                size: 14,
+              },
             },
           },
           tooltip: {
@@ -1294,35 +1437,36 @@ export class HomeComponent {
             titleColor: '#fff', // White title text
             bodyColor: '#fff', // White body text
             borderWidth: 1,
-            borderColor: 'rgba(255, 255, 255, 0.5)', // Subtle border for tooltips
+            borderColor: 'rgba(255, 255, 255, 0.5)', // Subtle border
             callbacks: {
               label: (context) => {
-                const value = context.raw;
-                return `Sales: ${value}. Rs`; // Format the tooltip label
+                const value = context.raw as number; // Explicitly cast to 'number'
+                return `Sales: ${value.toLocaleString()} Rs`; // Format the value
               },
             },
           },
         },
       },
     };
+    console.log('Top N value:', topN);
+    console.log('Sorted Data:', sortedData);
+    console.log('Top Data:', topData);
 
+    // Get the canvas element and render the chart
     const canvas = document.getElementById(
       'performanceComparisionChart'
     ) as HTMLCanvasElement;
     if (canvas) {
-      const chartCtx = canvas.getContext('2d');
-      if (chartCtx) {
-        // Destroy the existing chart if already rendered
-        if (this.performanceComparisionChart) {
-          this.performanceComparisionChart.destroy();
-        }
-
-        this.performanceComparisionChart = new Chart(chartCtx, config);
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        console.log('Chart context initialized');
+        this.performanceComparisionChart = new Chart(ctx, config);
+        console.log('Chart created successfully');
       } else {
         console.error('Failed to get 2D context for performance pie chart');
       }
     } else {
-      console.error('Performance pie chart element not found');
+      console.error('Performance comparison chart element not found');
     }
   }
 
@@ -1836,6 +1980,7 @@ export class HomeComponent {
     }
 
     const canvas = document.getElementById('areaChart') as HTMLCanvasElement;
+    console.log('Canvas context for area chart:', canvas);
     const ctx = canvas?.getContext('2d');
     if (ctx) {
       this.areaChart = new Chart(ctx, config);
@@ -2367,9 +2512,10 @@ export class HomeComponent {
     this.createChannelChart();
     //this.createMonthlySalesComparisonChart();
     //this.createCancellationsComparisionChart();
-    // this.createPerformanceComparisionChart();
+    this.createPerformanceComparisionChart(3);
     this.createBookingSourceComparisonChart();
     this.createMaterialGroupComparisonChart();
     //this.createAreaComparisionChart();
+    this.createTopNDaysPieChart(10);
   }
 }
